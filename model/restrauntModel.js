@@ -33,35 +33,40 @@ const restrauntModel = mongoose.model("restraunt", restrauntKey, "restraunt");
 
 
 
-restrauntModel['CustomerRes'] = async (date, starting, ending, Guest,res) => {
+restrauntModel['CustomerRes'] = async (date, starting, ending, Guest, res) => {
   try {
     let custArr = [];
     let peopleArr = []
     // let customer = await restrauntModel.find({ $and: [{ BookingDate: date }, { $or: [{ end: { $gt: starting } }, { start: { $gte: starting } }] }] })
-    let customer = await restrauntModel.find({ BookingDate: date, end: { $gt: starting } })
-    if (customer.length) {
-      for (let data of customer) {
-        custArr.push(data._id)
-      }
-      // let users = await restrauntModel.find({ _id: { $in: custArr }, start: { $gte: starting } , end : { $lte : ending}})
-      let users = await restrauntModel.find({ _id: { $in: custArr } })
-      if (users.length) {
-        for (let people of users) {
-          peopleArr.push(people.totalGuest)
+    let previous = await restrauntModel.findOne({ BookingDate: date, start: starting, end: ending })
+    if (previous != null) {
+      let customer = await restrauntModel.find({ BookingDate: date, end: { $gt: starting } })
+
+      if (customer.length) {
+        for (let data of customer) {
+          custArr.push(data._id)
         }
-        let totalPeople = peopleArr.reduce((a, b) => a + b, 0)
-        let newdata = Guest + totalPeople
-        if (totalPeople < 100 && newdata <= 100) {
-          console.log("IDHARRRRRRRRRRRRRRRRRRRRRRRRRRRRr")
-          return true
-        } else {
-          res.send({
-            responseCode: 400,
-            resonseMessage: "you can select booking in these slots"
-          });
+        // let users = await restrauntModel.find({ _id: { $in: custArr }, start: { $gte: starting } , end : { $lte : ending}})
+        let users = await restrauntModel.find({ _id: { $in: custArr } })
+        if (users.length) {
+          for (let people of users) {
+            peopleArr.push(people.totalGuest)
+          }
+          let totalPeople = peopleArr.reduce((a, b) => a + b, 0)
+          let newdata = Guest + totalPeople
+          if (totalPeople < 100 && newdata <= 100) {
+            console.log("IDHARRRRRRRRRRRRRRRRRRRRRRRRRRRRr")
+            return true
+          } else {
+            res.send({
+              responseCode: 400,
+              resonseMessage: "you can select booking in these slots"
+            });
+          }
         }
       }
-    } else {
+    }
+    else {
       return true
     }
   }
