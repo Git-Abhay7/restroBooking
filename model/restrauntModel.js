@@ -42,75 +42,43 @@ restrauntModel['CustomerRes'] = async (date, starting, ending, Guest, slots, res
     let custArr = [];
     let peopleArr = [];
     let finalArray = [];
-    // let customer = await restrauntModel.find({ $and: [{ BookingDate: date }, { $or: [{ end: { $gt: starting } }, { start: { $gte: starting } }] }] })
-    // let customer = await restrauntModel.find({ BookingDate: date, end: { $gt: starting } })
-    console.log("HERE===============>>>>>>>>>>>>>>>>>>>>>>>>", date, starting, ending, Guest, slots, duration)
-
-    let customer = await restrauntModel.find({ $and: [{ BookingDate: date }, { $or: [{ end: { $gt: starting } }, { start: { $gte: starting, $lte: ending } }] }] })
+    let customer = await restrauntModel.find({ $and: [{ BookingDate: date }, { $or: [{ end: { $gt: starting }, start: { $lt: starting } }, { start: { $gte: starting, $lt: ending } }] }] })
     for (let data of customer) {
       custArr.push(data._id)
     }
-    console.log("CUST ARRAY-====================>>>>", custArr)
-    // let users = await restrauntModel.find({ _id: { $in: custArr }, start: { $gte: starting } , end : { $lte : ending}})
     let users = await restrauntModel.find({ _id: { $in: custArr } })
     if (users.length) {
-      console.log("HERE======================================>>>>>>>>>>>>>>>>>>>>>>>>")
       for (let people of users) {
         peopleArr.push(people.totalGuest)
       }
       let totalPeople = peopleArr.reduce((a, b) => a + b, 0)
-      console.log("============>>>",totalPeople)
       let newdata = Guest + totalPeople;
       if (newdata <= 100) {
-        console.log("IDHARRRRRRRRRRRRRRRRRRRRRRRRRRRRr")
         return true
       } else {
-        // could be a function
         let filterSlot = await slots.filter(k => { return k > starting })
-        console.log("filter shot =====================>>>",filterSlot)
-        for (let a of filterSlot) {
-          let spl =  a.split(":");
-          let A = parseInt(spl[0]) + duration;
-          console.log(duration,"======AAAAAAAAAAAAAAAAA===============>>>>AAAAAAAAAAAAA------------",A)
-
-          // console.log(duration,"=======AAAAAAAAAAA================>>>>a------------",a,"============",A.add(1, 'hours').format('HH:mm'),"========*********=",A)
-          let b = A.toString()+ ":" +spl[1]
-          console.log(duration,"======BBBBBBBBBBB===============>>>>b------------",a,"====",b)
-
-          if (b > a) {
-            let cust = await restrauntModel.find({ end: { $gt: a } }, { start: { $gte: a, $lte: b } })
-            let newTotalPeople = cust.totalGuest.reduce((a, b) => a + b, 0)
-            let brandNewData = newTotalPeople + Guest
-            if (brandNewData <= 100) {
-              let obj = {}
-              obj.from = a;
-              obj.to = b;
-              finalArray.push(obj)
-            }
+        for (let time of filterSlot) {
+          let hour = time.split(":");
+          let endHour = parseInt(hour[0]) + duration;
+          let newEndTime = endHour.toString() + ":" + hour[1]
+          let cust = await restrauntModel.find({ $or: [{ end: { $gt: time }, start: { $lt: time } }, { start: { $gte: time, $lte: newEndTime } }] })
+          let arr = [];
+          for (let data of cust) {
+            arr.push(data.totalGuest)
           }
-          // let newSlot = await restrauntModel.find({ end: { $gt: starting, lte: "23:00" } })
-          // if (newSlot.length) {
-          //   for (let k of newSlot) {
-          //     if (k.totalPeople <= Guest) {
-
-          //     }
-          //   }
-
-          //   // res.send({
-          //   //   responseCode: 400,
-          //   //   resonseMessage: "you can select booking in these slots"
-          //   // });
-          // }
-          // else {
-          //   console.log("soryy we dont have slots")
-
-          // }
+          let newTotalPeople = arr.reduce((a, b) => a + b, 0)
+          let brandNewData = newTotalPeople + Guest
+          if (brandNewData <= 100 && finalArray.length < 3) {
+            let obj = {}
+            obj.from = time;
+            obj.to = newEndTime;
+            finalArray.push(obj)
+          }
         }
         res.send({
           responseCode: 400,
           resonseMessage: "you can select booking in these slots", finalArray
         });
-        // return finalArray;
       }
     } else {
       return true
