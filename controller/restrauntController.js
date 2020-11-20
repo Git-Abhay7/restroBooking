@@ -12,7 +12,7 @@ module.exports = {
                 timeSlots.push(new moment(startTime).format('HH:mm'));
                 startTime.add(15, 'minutes');
             }
-            if (req.body.totalGuest < 30) {
+            if (req.body.totalGuest <= 20) {
                 let result = await restraunt.CustomerRes(req.body.BookingDate, req.body.start, req.body.end, req.body.totalGuest, timeSlots, res, req.body.duration)
                 if (result == true) {
                     let finalData = await new restraunt(req.body).save();
